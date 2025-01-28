@@ -104,8 +104,12 @@ jobs:
           path: |
             ~/go/pkg
             ~/.cache
+      
+      - name: Run netowork capture
+        run: sudo tcpdump -s 200 -w tcpdump-repro.pcap &
 
       - name: Build for linux/arm64
+        timeout-minutes: 20
         run: >
           docker run --platform linux/arm64
           --rm
@@ -118,7 +122,15 @@ jobs:
           -c "git config --global --add safe.directory /erigon;
           make GOARCH=arm64 GOBIN=/erigon-build BUILD_TAGS=nosqlite,noboltdb,nosilkworm 
           erigon downloader devnet evm caplin diag integration rpcdaemon sentry txpool"
-
+      
+      - name: 'Upload Artifact'
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: tcpdump-repro-pcap-${{ github.run_id }}-${{ matrix.flag }}
+          path: tcpdump-repro.pcap
+          retention-days: 3
+          
         ## temporary disable silkworm in 3.x.x
       - name: Build for linux/amd64 (with nosilkworm tag)
         run: >
